@@ -60,10 +60,10 @@ class Module(BaseModule):
             try:
                 port = tool.config_data.get('port', '8080')
                 jenkins_url = f"http://localhost:{port}"
-                username = tool.config_data.get('username')
+                username = tool.config_data.get('username', 'admin')
                 password = tool.config_data.get('api_token') or tool.config_data.get('password')
                 
-                if username and password:
+                if password:
                     server = python_jenkins.Jenkins(jenkins_url, username=username, password=password)
                     
                     target = request.GET.get('tab')
