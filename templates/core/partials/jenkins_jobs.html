@@ -1,0 +1,28 @@
+<div class="table-responsive">
+    <table class="table table-dark table-hover align-middle">
+        <thead>
+            <tr>
+                <th>Name</th>
+                <th>URL</th>
+                <th>Color</th>
+            </tr>
+        </thead>
+        <tbody>
+            {% for job in jenkins_jobs %}
+            <tr>
+                <td>{{ job.name }}</td>
+                <td><a href="{{ job.url }}" target="_blank" class="text-info text-decoration-none">{{ job.url }}</a></td>
+                <td>
+                    <span class="badge {% if job.color == 'blue' %}bg-success{% elif job.color == 'red' %}bg-danger{% else %}bg-secondary{% endif %}">
+                        {{ job.color }}
+                    </span>
+                </td>
+            </tr>
+            {% empty %}
+            <tr>
+                <td colspan="3" class="text-center text-muted">No jobs found.</td>
+            </tr>
+            {% endfor %}
+        </tbody>
+    </table>
+</div>

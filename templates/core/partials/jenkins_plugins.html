@@ -1,0 +1,30 @@
+<div class="table-responsive">
+    <table class="table table-dark table-hover align-middle">
+        <thead>
+            <tr>
+                <th>Short Name</th>
+                <th>Long Name</th>
+                <th>Version</th>
+                <th>Enabled</th>
+            </tr>
+        </thead>
+        <tbody>
+            {% for plugin in jenkins_plugins %}
+            <tr>
+                <td>{{ plugin.shortName }}</td>
+                <td>{{ plugin.longName }}</td>
+                <td>{{ plugin.version }}</td>
+                <td>
+                    <span class="badge {% if plugin.enabled %}bg-success{% else %}bg-secondary{% endif %}">
+                        {% if plugin.enabled %}Enabled{% else %}Disabled{% endif %}
+                    </span>
+                </td>
+            </tr>
+            {% empty %}
+            <tr>
+                <td colspan="4" class="text-center text-muted">No plugins found.</td>
+            </tr>
+            {% endfor %}
+        </tbody>
+    </table>
+</div>

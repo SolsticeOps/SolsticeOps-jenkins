@@ -1,0 +1,14 @@
+
+jenkins:
+  securityRealm:
+    local:
+      allowsSignup: false
+      users:
+       - id: "admin"
+         password: "admin"
+  authorizationStrategy:
+    fullControlOnceLoggedIn:
+      allowAnonymousRead: false
+unclassified:
+  location:
+    url: http://localhost:8383/
