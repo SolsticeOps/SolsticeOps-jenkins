@@ -55,7 +55,7 @@ class Module(BaseModule):
                 port = tool.config_data.get('port', '8080')
                 jenkins_url = f"http://localhost:{port}"
                 username = tool.config_data.get('username')
-                password = tool.config_data.get('password')
+                password = tool.config_data.get('api_token') or tool.config_data.get('password')
                 
                 if username and password:
                     server = jenkins.Jenkins(jenkins_url, username=username, password=password)
@@ -194,6 +194,14 @@ class Module(BaseModule):
                             location.setUrl("http://127.0.0.1:" + """ + port + """ + "/")
                             location.save()
 
+                            // Generate API Token for admin
+                            def user = hudson.model.User.get("admin")
+                            def prop = user.getProperty(jenkins.security.ApiTokenProperty.class)
+                            def token = prop.tokenStore.generateNewToken("SolsticeOps").plainValue
+                            
+                            // We will print the token so it can be captured by the installer
+                            println("SOLSTICE_JENKINS_TOKEN:" + token)
+
                             // Install recommended plugins
                             def pluginManager = instance.getPluginManager()
                             def updateCenter = instance.getUpdateCenter()
@@ -220,13 +228,16 @@ class Module(BaseModule):
 
                             instance.save()
                             """.replace('""" + port + """', port)
-                            try:
-                                server.run_script(setup_script)
-                            except Exception as script_err:
-                                print(f"Jenkins script execution warning: {script_err}")
-                            
                             tool.config_data['username'] = 'admin'
                             tool.config_data['password'] = 'admin'
+                            
+                            // Get token from script output
+                            def script_output = server.run_script(setup_script)
+                            def token_match = (script_output =~ /SOLSTICE_JENKINS_TOKEN:([a-zA-Z0-9-]+)/)
+                            if (token_match) {
+                                tool.config_data['api_token'] = token_match[0][1]
+                            }
+
                             tool.status = 'installed'
                             tool.current_stage = "Jenkins installed, configured and plugins requested"
                         else:

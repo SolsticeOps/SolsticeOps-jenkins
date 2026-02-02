@@ -11,7 +11,7 @@
                     <div class="mb-3">
                         <label class="form-label text-light">New Password</label>
                         <input type="password" name="new_password" class="form-control bg-dark text-light border-secondary" required>
-                        <div class="form-text text-muted">This will update the password for the '{{ tool.config_data.username|default:'admin' }}' user and save it in SolsticeOps.</div>
+                        <div class="form-text text-muted">This will update the password for the '{{ tool.config_data.username|default:'admin' }}' user in Jenkins. The password will not be stored in SolsticeOps (authentication is done via API key).</div>
                     </div>
                 </div>
                 <div class="modal-footer border-secondary">

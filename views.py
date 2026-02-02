@@ -21,9 +21,22 @@ def change_admin_password(request):
         tool = get_object_or_404(Tool, name='jenkins')
         new_password = request.POST.get('new_password')
         if new_password:
-            # Here we would normally call Jenkins API to change password
-            # For now, we just update it in our config
-            tool.config_data['password'] = new_password
+            try:
+                import jenkins as jenkins_api
+                
+                port = tool.config_data.get('port', '8080')
+                jenkins_url = f"http://localhost:{port}"
+                username = tool.config_data.get('username', 'admin')
+                password = tool.config_data.get('api_token') or tool.config_data.get('password')
+                
+                if username and password:
+                    server = jenkins_api.Jenkins(jenkins_url, username=username, password=password)
+                    script = f'hudson.model.User.get("{username}").setCredentials("{new_password}")'
+                    server.run_script(script)
+            except Exception as e:
+                print(f"Error changing Jenkins password: {e}")
+            
+            # We do NOT save the password in tool.config_data anymore
             tool.save()
     return redirect('tool_detail', tool_name='jenkins')
 
