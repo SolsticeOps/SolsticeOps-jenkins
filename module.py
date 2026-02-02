@@ -78,9 +78,177 @@ class Module(BaseModule):
             return render(request, 'core/partials/jenkins_plugins.html', context)
         return None
 
+    def install(self, request, tool):
+        if request.method == 'POST':
+            port = request.POST.get('port', '8080')
+            jnlp_port = request.POST.get('jnlp_port', '50000')
+            volume_name = request.POST.get('volume_name', 'jenkins_home')
+            container_name = request.POST.get('container_name', 'jenkins')
+            privileged = request.POST.get('privileged') == 'on'
+
+            tool.status = 'installing'
+            tool.save()
+
+            def run_jenkins_install():
+                try:
+                    client = docker.from_env()
+                    tool.current_stage = "Checking for Docker..."
+                    tool.save()
+                    
+                    # Ensure volume exists
+                    tool.current_stage = f"Creating volume {volume_name}..."
+                    tool.save()
+                    client.volumes.create(name=volume_name)
+
+                    # Ensure network exists
+                    tool.current_stage = "Creating network jenkins_network..."
+                    tool.save()
+                    try:
+                        client.networks.get("jenkins_network")
+                    except docker.errors.NotFound:
+                        client.networks.create("jenkins_network", driver="bridge")
+
+                    # Pull image
+                    tool.current_stage = "Pulling Jenkins image (jenkins/jenkins:lts)..."
+                    tool.save()
+                    client.images.pull("jenkins/jenkins", tag="lts")
+
+                    # Run container
+                    tool.current_stage = "Starting Jenkins container..."
+                    tool.save()
+                    
+                    ports = {
+                        '8080/tcp': port,
+                        '50000/tcp': jnlp_port
+                    }
+                    
+                    volumes = {
+                        volume_name: {'bind': '/var/jenkins_home', 'mode': 'rw'}
+                    }
+
+                    container = client.containers.run(
+                        "jenkins/jenkins:lts",
+                        name=container_name,
+                        ports=ports,
+                        volumes=volumes,
+                        detach=True,
+                        privileged=privileged,
+                        network="jenkins_network",
+                        restart_policy={"Name": "always"}
+                    )
+
+                    tool.status = 'installing'
+                    tool.current_stage = "Waiting for initial password..."
+                    tool.config_data['port'] = port
+                    tool.config_data['container_id'] = container.id
+                    tool.config_data['container_name'] = container_name
+                    tool.save()
+
+                    # Wait for initial password in logs
+                    initial_password = None
+                    for _ in range(30):
+                        logs = container.logs().decode('utf-8')
+                        match = re.search(r'Please use the following password to proceed to installation:.*?([a-f0-9]{32})', logs, re.DOTALL)
+                        if match:
+                            initial_password = match.group(1)
+                            break
+                        time.sleep(5)
+                    
+                    if initial_password:
+                        tool.current_stage = "Configuring Jenkins (setting admin/admin)..."
+                        tool.save()
+                        
+                        # Wait for Jenkins to be ready
+                        jenkins_url = f"http://localhost:{port}"
+                        server = None
+                        for _ in range(20):
+                            try:
+                                server = jenkins.Jenkins(jenkins_url, username='admin', password=initial_password)
+                                server.get_version()
+                                break
+                            except:
+                                time.sleep(5)
+                        
+                        if server:
+                            setup_script = """
+                            import jenkins.model.*
+                            import hudson.security.*
+                            import jenkins.install.*
+
+                            def instance = Jenkins.getInstance()
+
+                            // Set admin password
+                            def hudsonRealm = new HudsonPrivateSecurityRealm(false)
+                            hudsonRealm.createAccount("admin", "admin")
+                            instance.setSecurityRealm(hudsonRealm)
+
+                            def strategy = new FullControlOnceLoggedInAuthorizationStrategy()
+                            strategy.setAllowAnonymousRead(false)
+                            instance.setAuthorizationStrategy(strategy)
+
+                            // Disable setup wizard
+                            instance.setInstallState(InstallState.INITIAL_SETUP_COMPLETED)
+
+                            // Set Jenkins URL
+                            def location = jenkins.model.JenkinsLocationConfiguration.get()
+                            location.setUrl("http://127.0.0.1:" + """ + port + """ + "/")
+                            location.save()
+
+                            // Install recommended plugins
+                            def pluginManager = instance.getPluginManager()
+                            def updateCenter = instance.getUpdateCenter()
+                            def plugins = [
+                                "workflow-aggregator", "git", "pipeline-stage-view", 
+                                "ssh-slaves", "matrix-auth", "pam-auth", "ldap", 
+                                "email-ext", "mailer", "dark-theme"
+                            ]
+                            
+                            def installed = false
+                            plugins.each { 
+                                if (!pluginManager.getPlugin(it)) {
+                                    def plugin = updateCenter.getById("default").getPlugin(it)
+                                    if (plugin) {
+                                        plugin.deploy()
+                                        installed = true
+                                    }
+                                }
+                            }
+                            if (installed) {
+                                instance.save()
+                                instance.restart()
+                            }
+
+                            instance.save()
+                            """.replace('""" + port + """', port)
+                            try:
+                                server.run_script(setup_script)
+                            except Exception as script_err:
+                                print(f"Jenkins script execution warning: {script_err}")
+                            
+                            tool.config_data['username'] = 'admin'
+                            tool.config_data['password'] = 'admin'
+                            tool.status = 'installed'
+                            tool.current_stage = "Jenkins installed, configured and plugins requested"
+                        else:
+                            tool.status = 'error'
+                            tool.current_stage = "Jenkins started, but auto-config failed (timeout)"
+                    else:
+                        tool.status = 'error'
+                        tool.current_stage = "Jenkins started, but initial password not found in logs"
+
+                    tool.version = "LTS"
+                    tool.save()
+                except Exception as e:
+                    tool.status = 'error'
+                    tool.config_data['error_log'] = str(e)
+                    tool.save()
+
+            threading.Thread(target=run_jenkins_install).start()
+
     def get_urls(self):
         from . import views
         return [
             path('jenkins/update_creds/', views.update_creds, name='update_jenkins_creds'),
             path('jenkins/change_password/', views.change_admin_password, name='change_jenkins_admin_password'),
+            path('jenkins/find/', views.find_jenkins, name='find_jenkins'),
         ]
