@@ -59,7 +59,15 @@ class Module(BaseModule):
                 
                 if username and password:
                     server = jenkins.Jenkins(jenkins_url, username=username, password=password)
-                    context['jenkins_jobs'] = server.get_jobs()
+                    
+                    target = request.GET.get('tab')
+                    if target == 'jenkins_nodes':
+                        context['jenkins_nodes'] = server.get_nodes()
+                    elif target == 'jenkins_plugins':
+                        context['jenkins_plugins'] = server.get_plugins().values()
+                    else:
+                        context['jenkins_jobs'] = server.get_jobs()
+                    
                     context['jenkins_connected'] = True
                 else:
                     context['jenkins_auth_required'] = True
@@ -228,14 +236,15 @@ class Module(BaseModule):
 
                             instance.save()
                             """.replace('""" + port + """', port)
-                            tool.config_data['username'] = 'admin'
-                            tool.config_data['password'] = 'admin'
-                            
-                            # Get token from script output
+                            // Get token from script output
                             script_output = server.run_script(setup_script)
                             token_match = re.search(r'SOLSTICE_JENKINS_TOKEN:([a-zA-Z0-9-]+)', script_output)
                             if token_match:
                                 tool.config_data['api_token'] = token_match.group(1)
+                                tool.config_data['username'] = 'admin'
+                                # Remove password after getting token
+                                if 'password' in tool.config_data:
+                                    del tool.config_data['password']
 
                             tool.status = 'installed'
                             tool.current_stage = "Jenkins installed, configured and plugins requested"
