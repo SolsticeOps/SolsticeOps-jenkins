@@ -22,6 +22,9 @@ class Module(BaseModule):
     def get_extra_actions_template_name(self):
         return "core/modules/jenkins_extra_actions.html"
 
+    def get_extra_content_template_name(self):
+        return "core/modules/jenkins_modals.html"
+
     def get_resource_tabs(self):
         return [
             {
@@ -75,4 +78,5 @@ class Module(BaseModule):
         from . import views
         return [
             path('jenkins/update_creds/', views.update_creds, name='update_jenkins_creds'),
+            path('jenkins/change_password/', views.change_admin_password, name='change_jenkins_admin_password'),
         ]

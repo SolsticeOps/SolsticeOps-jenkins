@@ -1,0 +1,24 @@
+<div class="modal fade" id="changeJenkinsPasswordModal" tabindex="-1" aria-hidden="true">
+    <div class="modal-dialog">
+        <div class="modal-content bg-dark border-secondary">
+            <div class="modal-header border-secondary">
+                <h5 class="modal-title text-white">Change Jenkins Admin Password</h5>
+                <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
+            </div>
+            <form action="{% url 'change_jenkins_admin_password' %}" method="POST">
+                {% csrf_token %}
+                <div class="modal-body">
+                    <div class="mb-3">
+                        <label class="form-label text-light">New Password</label>
+                        <input type="password" name="new_password" class="form-control bg-dark text-light border-secondary" required>
+                        <div class="form-text text-muted">This will update the password for the '{{ tool.config_data.username|default:'admin' }}' user and save it in SolsticeOps.</div>
+                    </div>
+                </div>
+                <div class="modal-footer border-secondary">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+                    <button type="submit" class="btn btn-primary">Update Password</button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
