@@ -236,7 +236,7 @@ class Module(BaseModule):
 
                             instance.save()
                             """.replace('""" + port + """', port)
-                            // Get token from script output
+                            # Get token from script output
                             script_output = server.run_script(setup_script)
                             token_match = re.search(r'SOLSTICE_JENKINS_TOKEN:([a-zA-Z0-9-]+)', script_output)
                             if token_match:
