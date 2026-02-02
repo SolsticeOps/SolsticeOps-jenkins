@@ -70,7 +70,7 @@ class Module(BaseModule):
                     if target == 'jenkins_nodes':
                         context['jenkins_nodes'] = server.get_nodes()
                     elif target == 'jenkins_plugins':
-                        context['jenkins_plugins'] = server.get_plugins().values()
+                        context['jenkins_plugins'] = server.get_plugins_info()
                     else:
                         context['jenkins_jobs'] = server.get_jobs()
                     
