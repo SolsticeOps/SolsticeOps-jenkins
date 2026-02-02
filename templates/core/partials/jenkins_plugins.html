@@ -2,6 +2,9 @@
 <div class="alert alert-danger">
     <h6 class="alert-heading fw-bold">Jenkins API Error</h6>
     <p class="small mb-0">{{ jenkins_error }}</p>
+    {% if jenkins_auth_error %}
+    <p class="small mt-2 mb-0">It seems your API token or password is incorrect. Please update them in the service management section.</p>
+    {% endif %}
 </div>
 {% elif jenkins_auth_required %}
 <div class="alert alert-warning">

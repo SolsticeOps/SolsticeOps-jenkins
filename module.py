@@ -78,7 +78,10 @@ class Module(BaseModule):
                 else:
                     context['jenkins_auth_required'] = True
             except Exception as e:
-                context['jenkins_error'] = str(e)
+                error_msg = str(e)
+                if "401" in error_msg or "Unauthorized" in error_msg:
+                    context['jenkins_auth_error'] = True
+                context['jenkins_error'] = error_msg.split('\n')[0] # Only show the first line of the error
         return context
 
     def handle_hx_request(self, request, tool, target):
@@ -212,6 +215,7 @@ class Module(BaseModule):
                             def user = hudson.model.User.get("admin")
                             def prop = user.getProperty(jenkins.security.ApiTokenProperty.class)
                             def token = prop.tokenStore.generateNewToken("SolsticeOps").plainValue
+                            user.save()
                             
                             // We will print the token so it can be captured by the installer
                             println("SOLSTICE_JENKINS_TOKEN:" + token)
