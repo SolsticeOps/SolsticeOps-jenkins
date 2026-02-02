@@ -72,6 +72,10 @@ class Module(BaseModule):
         context['tool'] = tool
         if target == 'jenkins_jobs':
             return render(request, 'core/partials/jenkins_jobs.html', context)
+        elif target == 'jenkins_nodes':
+            return render(request, 'core/partials/jenkins_nodes.html', context)
+        elif target == 'jenkins_plugins':
+            return render(request, 'core/partials/jenkins_plugins.html', context)
         return None
 
     def get_urls(self):
