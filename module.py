@@ -231,12 +231,11 @@ class Module(BaseModule):
                             tool.config_data['username'] = 'admin'
                             tool.config_data['password'] = 'admin'
                             
-                            // Get token from script output
-                            def script_output = server.run_script(setup_script)
-                            def token_match = (script_output =~ /SOLSTICE_JENKINS_TOKEN:([a-zA-Z0-9-]+)/)
-                            if (token_match) {
-                                tool.config_data['api_token'] = token_match[0][1]
-                            }
+                            # Get token from script output
+                            script_output = server.run_script(setup_script)
+                            token_match = re.search(r'SOLSTICE_JENKINS_TOKEN:([a-zA-Z0-9-]+)', script_output)
+                            if token_match:
+                                tool.config_data['api_token'] = token_match.group(1)
 
                             tool.status = 'installed'
                             tool.current_stage = "Jenkins installed, configured and plugins requested"
