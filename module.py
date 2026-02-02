@@ -1,4 +1,4 @@
-import jenkins
+import jenkins as python_jenkins
 import docker
 import re
 import time
@@ -8,8 +8,14 @@ from django.urls import path
 from core.plugin_system import BaseModule
 
 class Module(BaseModule):
-    module_id = "jenkins"
-    module_name = "Jenkins"
+    @property
+    def module_id(self):
+        return "jenkins"
+
+    @property
+    def module_name(self):
+        return "Jenkins"
+
     description = "CI/CD automation server."
 
     def get_install_template_name(self):
@@ -58,7 +64,7 @@ class Module(BaseModule):
                 password = tool.config_data.get('api_token') or tool.config_data.get('password')
                 
                 if username and password:
-                    server = jenkins.Jenkins(jenkins_url, username=username, password=password)
+                    server = python_jenkins.Jenkins(jenkins_url, username=username, password=password)
                     
                     target = request.GET.get('tab')
                     if target == 'jenkins_nodes':
@@ -171,7 +177,7 @@ class Module(BaseModule):
                         server = None
                         for _ in range(20):
                             try:
-                                server = jenkins.Jenkins(jenkins_url, username='admin', password=initial_password)
+                                server = python_jenkins.Jenkins(jenkins_url, username='admin', password=initial_password)
                                 server.get_version()
                                 break
                             except:
@@ -199,7 +205,7 @@ class Module(BaseModule):
 
                             // Set Jenkins URL
                             def location = jenkins.model.JenkinsLocationConfiguration.get()
-                            location.setUrl("http://127.0.0.1:" + """ + port + """ + "/")
+                            location.setUrl("http://127.0.0.1:{{PORT}}/")
                             location.save()
 
                             // Generate API Token for admin
@@ -235,7 +241,7 @@ class Module(BaseModule):
                             }
 
                             instance.save()
-                            """.replace('""" + port + """', port)
+                            """.replace('{{PORT}}', port)
                             # Get token from script output
                             script_output = server.run_script(setup_script)
                             token_match = re.search(r'SOLSTICE_JENKINS_TOKEN:([a-zA-Z0-9-]+)', script_output)
