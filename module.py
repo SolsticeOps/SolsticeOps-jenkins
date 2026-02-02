@@ -12,6 +12,39 @@ class Module(BaseModule):
     module_name = "Jenkins"
     description = "CI/CD automation server."
 
+    def get_install_template_name(self):
+        return "core/modules/jenkins_install.html"
+
+    def get_logs_url(self, tool):
+        container_name = tool.config_data.get('container_name', 'jenkins')
+        return f'/docker/container/{container_name}/logs/'
+
+    def get_extra_actions_template_name(self):
+        return "core/modules/jenkins_extra_actions.html"
+
+    def get_resource_tabs(self):
+        return [
+            {
+                'id': 'jenkins_jobs', 
+                'label': 'Jobs', 
+                'hx_get': '/tool/jenkins/?tab=jenkins_jobs', 
+                'hx_auto_refresh': 'load, every 10s',
+                'template': 'core/modules/jenkins_loading.html'
+            },
+            {
+                'id': 'jenkins_nodes', 
+                'label': 'Nodes', 
+                'hx_get': '/tool/jenkins/?tab=jenkins_nodes',
+                'template': 'core/modules/jenkins_loading.html'
+            },
+            {
+                'id': 'jenkins_plugins', 
+                'label': 'Plugins', 
+                'hx_get': '/tool/jenkins/?tab=jenkins_plugins',
+                'template': 'core/modules/jenkins_loading.html'
+            },
+        ]
+
     def get_context_data(self, request, tool):
         context = {}
         if tool.status == 'installed':
