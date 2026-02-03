@@ -19,6 +19,23 @@ class Module(BaseModule):
     description = "CI/CD automation server."
     version = "1.0.0"
 
+    def get_service_version(self):
+        try:
+            # Try to get version from the running container if possible
+            # Jenkins version is usually in the footer or available via API
+            # But we can also check the image tag or run a command in container
+            import docker
+            client = docker.from_env()
+            container = client.containers.get('jenkins')
+            if container.status == 'running':
+                # Run 'java -jar /usr/share/jenkins/jenkins.war --version'
+                res = container.exec_run("java -jar /usr/share/jenkins/jenkins.war --version")
+                if res.exit_code == 0:
+                    return res.output.decode().strip()
+        except Exception:
+            pass
+        return None
+
     def get_install_template_name(self):
         return "core/modules/jenkins_install.html"
 
