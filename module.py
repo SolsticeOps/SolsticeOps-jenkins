@@ -17,6 +17,7 @@ class Module(BaseModule):
         return "Jenkins"
 
     description = "CI/CD automation server."
+    version = "1.0.0"
 
     def get_install_template_name(self):
         return "core/modules/jenkins_install.html"
