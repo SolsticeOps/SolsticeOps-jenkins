@@ -113,6 +113,11 @@ class Module(BaseModule):
         return None
 
     def install(self, request, tool):
+        if tool.status == 'error' and request.method == 'GET':
+            tool.status = 'not_installed'
+            tool.save()
+            return
+
         if tool.status not in ['not_installed', 'error'] and request.method != 'POST':
             return
 
