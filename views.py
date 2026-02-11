@@ -1,7 +1,7 @@
-import docker
 from django.shortcuts import redirect, get_object_or_404
 from core.models import Tool
 from django.contrib.auth.decorators import login_required
+from .cli_wrapper import DockerCLI
 
 @login_required
 def update_creds(request):
@@ -44,7 +44,7 @@ def change_admin_password(request):
 def find_jenkins(request):
     tool = get_object_or_404(Tool, name='jenkins')
     try:
-        client = docker.from_env()
+        client = DockerCLI()
         # Broaden search: check for any container with 'jenkins' in image or name
         all_containers = client.containers.list(all=True)
         found_container = None

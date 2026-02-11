@@ -24,10 +24,9 @@ class Module(BaseModule):
             # Try to get version from the running container if possible
             # Jenkins version is usually in the footer or available via API
             # But we can also check the image tag or run a command in container
-            import docker
-                    client = DockerCLI()
+            client = DockerCLI()
             container = client.containers.get('jenkins')
-            if container.status == 'running':
+            if container and container.status == 'running':
                 # Run 'java -jar /usr/share/jenkins/jenkins.war --version'
                 res = container.exec_run("java -jar /usr/share/jenkins/jenkins.war --version")
                 if res.exit_code == 0:
@@ -141,9 +140,7 @@ class Module(BaseModule):
                     # Ensure network exists
                     tool.current_stage = "Creating network jenkins_network..."
                     tool.save()
-                    try:
-                        client.networks.get("jenkins_network")
-                    except docker.errors.NotFound:
+                    if not client.networks.get("jenkins_network"):
                         client.networks.create("jenkins_network", driver="bridge")
 
                     # Pull image
