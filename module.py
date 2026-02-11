@@ -114,6 +114,9 @@ class Module(BaseModule):
         return None
 
     def install(self, request, tool):
+        if tool.status not in ['not_installed', 'error'] and request.method != 'POST':
+            return
+
         if request.method == 'POST':
             port = request.POST.get('port', '8080')
             jnlp_port = request.POST.get('jnlp_port', '50000')
