@@ -1,11 +1,11 @@
 import jenkins as python_jenkins
-import docker
 import re
 import time
 import threading
 from django.shortcuts import render, redirect
 from django.urls import path
 from core.plugin_system import BaseModule
+from .cli_wrapper import DockerCLI
 
 class Module(BaseModule):
     @property
@@ -25,7 +25,7 @@ class Module(BaseModule):
             # Jenkins version is usually in the footer or available via API
             # But we can also check the image tag or run a command in container
             import docker
-            client = docker.from_env()
+                    client = DockerCLI()
             container = client.containers.get('jenkins')
             if container.status == 'running':
                 # Run 'java -jar /usr/share/jenkins/jenkins.war --version'
@@ -129,7 +129,7 @@ class Module(BaseModule):
 
             def run_jenkins_install():
                 try:
-                    client = docker.from_env()
+                    client = DockerCLI()
                     tool.current_stage = "Checking for Docker..."
                     tool.save()
                     
