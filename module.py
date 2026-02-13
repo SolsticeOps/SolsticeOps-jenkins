@@ -5,7 +5,7 @@ import threading
 from django.shortcuts import render, redirect
 from django.urls import path
 from core.plugin_system import BaseModule
-from .cli_wrapper import DockerCLI
+from core.docker_cli_wrapper import DockerCLI
 
 class Module(BaseModule):
     @property
