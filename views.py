@@ -1,7 +1,7 @@
 from django.shortcuts import redirect, get_object_or_404
 from core.models import Tool
 from django.contrib.auth.decorators import login_required
-from .cli_wrapper import DockerCLI
+from core.docker_cli_wrapper import DockerCLI
 
 @login_required
 def update_creds(request):
