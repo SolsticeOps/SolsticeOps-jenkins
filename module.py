@@ -41,9 +41,9 @@ class Module(BaseModule):
             container = client.containers.get(tool.config_data.get('container_name', 'jenkins'))
             if container:
                 return 'running' if container.status == 'running' else 'stopped'
-            return 'error'
+            return 'stopped'
         except Exception:
-            return 'error'
+            return 'stopped'
 
     def service_start(self, tool):
         client = DockerCLI()
