@@ -35,6 +35,34 @@ class Module(BaseModule):
             pass
         return None
 
+    def get_service_status(self, tool):
+        try:
+            client = DockerCLI()
+            container = client.containers.get(tool.config_data.get('container_name', 'jenkins'))
+            if container:
+                return 'running' if container.status == 'running' else 'stopped'
+            return 'error'
+        except Exception:
+            return 'error'
+
+    def service_start(self, tool):
+        client = DockerCLI()
+        container = client.containers.get(tool.config_data.get('container_name', 'jenkins'))
+        if container:
+            container.start()
+
+    def service_stop(self, tool):
+        client = DockerCLI()
+        container = client.containers.get(tool.config_data.get('container_name', 'jenkins'))
+        if container:
+            container.stop()
+
+    def service_restart(self, tool):
+        client = DockerCLI()
+        container = client.containers.get(tool.config_data.get('container_name', 'jenkins'))
+        if container:
+            container.restart()
+
     def get_install_template_name(self):
         return "core/modules/jenkins_install.html"
 
