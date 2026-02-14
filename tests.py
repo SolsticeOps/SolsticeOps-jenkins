@@ -152,3 +152,96 @@ class JenkinsModuleTest(TestCase):
         module = plugin_registry.get_module("jenkins")
         status = module.get_service_status(self.tool)
         self.assertEqual(status, "running")
+
+    @patch('modules.jenkins.module.DockerCLI')
+    @patch('jenkins.Jenkins')
+    @patch('modules.jenkins.module.threading.Thread')
+    def test_jenkins_install_full_process(self, mock_thread, mock_jenkins, mock_docker):
+        from modules.jenkins.module import Module
+        module = Module()
+        self.tool.status = 'not_installed'
+        self.tool.save()
+        
+        request = MagicMock()
+        request.method = 'POST'
+        request.POST = {
+            'port': '8081',
+            'jnlp_port': '50001',
+            'volume_name': 'jenkins_vol',
+            'container_name': 'jenkins_cont',
+            'privileged': 'on'
+        }
+        
+        module.install(request, self.tool)
+        target_func = mock_thread.call_args[1]['target']
+        
+        # Mock Docker components
+        mock_cli = MagicMock()
+        mock_docker.return_value = mock_cli
+        mock_container = MagicMock()
+        mock_container.id = "jenk123"
+        mock_container.logs.return_value = b"Please use the following password to proceed to installation:\n1234567890abcdef1234567890abcdef\n"
+        mock_cli.containers.run.return_value = mock_container
+        mock_cli.networks.get.return_value = None
+        
+        # Mock Jenkins API
+        mock_server = MagicMock()
+        mock_jenkins.return_value = mock_server
+        mock_server.run_script.return_value = "SOLSTICE_JENKINS_TOKEN:test-api-token"
+        
+        target_func()
+        
+        self.tool.refresh_from_db()
+        self.assertEqual(self.tool.status, 'installed')
+        self.assertEqual(self.tool.config_data['api_token'], 'test-api-token')
+        self.assertEqual(self.tool.config_data['port'], '8081')
+        self.assertEqual(self.tool.config_data['container_name'], 'jenkins_cont')
+
+    @patch('jenkins.Jenkins')
+    def test_jenkins_context_data_tabs(self, mock_jenkins):
+        from modules.jenkins.module import Module
+        module = Module()
+        
+        mock_server = MagicMock()
+        mock_jenkins.return_value = mock_server
+        mock_server.get_nodes.return_value = [{'name': 'master'}]
+        mock_server.get_plugins_info.return_value = [{'name': 'git'}]
+        
+        self.tool.config_data['api_token'] = 'token'
+        self.tool.save()
+        
+        request = MagicMock()
+        
+        # Test nodes tab
+        request.GET = {'tab': 'jenkins_nodes'}
+        context = module.get_context_data(request, self.tool)
+        self.assertEqual(context['jenkins_nodes'], [{'name': 'master'}])
+        
+        # Test plugins tab
+        request.GET = {'tab': 'jenkins_plugins'}
+        context = module.get_context_data(request, self.tool)
+        self.assertEqual(context['jenkins_plugins'], [{'name': 'git'}])
+
+    @patch('jenkins.Jenkins')
+    def test_jenkins_auth_errors(self, mock_jenkins):
+        from modules.jenkins.module import Module
+        module = Module()
+        
+        mock_jenkins.side_effect = Exception("401 Unauthorized")
+        self.tool.config_data['api_token'] = 'wrong'
+        
+        context = module.get_context_data(MagicMock(), self.tool)
+        self.assertTrue(context.get('jenkins_auth_error'))
+        
+        mock_jenkins.side_effect = Exception("Some other error")
+        context = module.get_context_data(MagicMock(), self.tool)
+        self.assertEqual(context.get('jenkins_error'), "Some other error")
+
+    def test_jenkins_no_password(self):
+        from modules.jenkins.module import Module
+        module = Module()
+        self.tool.config_data = {'port': '8080'} # No password or token
+        self.tool.save()
+        
+        context = module.get_context_data(MagicMock(), self.tool)
+        self.assertTrue(context.get('jenkins_auth_required'))
